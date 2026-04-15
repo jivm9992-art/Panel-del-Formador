@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Panel de Resultados BBVA</title>
+    <style>
+        body { font-family: sans-serif; background: #f4f6f9; padding: 20px; }
+        .card { background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+        h1 { color: #004481; }
+        table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+        th, td { padding: 12px; border: 1px solid #ddd; text-align: left; font-size: 13px; }
+        th { background: #004481; color: white; }
+        tr:nth-child(even) { background: #f9f9f9; }
+        .btn { padding: 10px 20px; background: #4caf50; color: white; border: none; border-radius: 4px; cursor: pointer; font-weight: bold; }
+    </style>
+</head>
+<body>
+
+<div class="card">
+    <h1>Resultados de Evaluación - Campaña BBVA</h1>
+    <button class="btn" id="btnDescargar">📊 Descargar Excel Completo (CSV)</button>
+    
+    <table id="tabla-resultados">
+        <thead>
+            <tr>
+                <th>Nombre</th>
+                <th>Puntuación</th>
+                <th>Tiempo</th>
+                <th>Fecha</th>
+                <th>Detalle de Errores</th>
+            </tr>
+        </thead>
+        <tbody id="cuerpo-tabla">
+            <tr><td colspan="5">Cargando datos desde Firebase...</td></tr>
+        </tbody>
+    </table>
+</div>
+
+<script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+    import { getFirestore, collection, getDocs, query, orderBy } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+
+    const firebaseConfig = {
+        apiKey: "AIzaSyAALeauXYBdVCXcf0jaCMvfjwS_cPxo_ks",
+        authDomain: "perfiles-sucursal.firebaseapp.com",
+        projectId: "perfiles-sucursal",
+        storageBucket: "perfiles-sucursal.firebasestorage.app",
+        messagingSenderId: "394146925553",
+        appId: "1:394146925553:web:c19a59ff3d6eee3c731250"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
+
+    async function cargarDatos() {
+        const cuerpo = document.getElementById('cuerpo-tabla');
+        const q = query(collection(db, "resultados_evaluacion"), orderBy("fecha", "desc"));
+        const querySnapshot = await getDocs(q);
+        
+        cuerpo.innerHTML = "";
+        let csvRows = ["Nombre,Puntuacion,Tiempo,Fecha,Errores"];
+
+        querySnapshot.forEach((doc) => {
+            const d = doc.data();
+            const row = document.createElement('tr');
+            row.innerHTML = `
+                <td>${d.nombre}</td>
+                <td>${d.puntuacion}</td>
+                <td>${d.tiempo}</td>
+                <td>${d.fecha}</td>
+                <td style="color: #d32f2f;">${d.errores}</td>
+            `;
+            cuerpo.appendChild(row);
+            
+            // Preparar fila para CSV
+            csvRows.push(`"${d.nombre}","${d.puntuacion}","${d.tiempo}","${d.fecha}","${d.errores}"`);
+        });
+
+        // Lógica de descarga
+        document.getElementById('btnDescargar').onclick = () => {
+            const csvContent = "\uFEFF" + csvRows.join("\n");
+            const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+            const url = URL.createObjectURL(blob);
+            const link = document.createElement("a");
+            link.href = url;
+            link.download = "Reporte_General_BBVA.csv";
+            link.click();
+        };
+    }
+
+    cargarDatos();
+</script>
+</body>
+</html>
